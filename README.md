@@ -73,4 +73,58 @@ npm test
 ```
 
 
+---
 
+## Implementation Notes
+
+Refactored the placeholder `getTax`/`getHEM` functions and `calculateBorrowingPower`
+into a `BorrowingCalculator` class, with a shared `fetchJson` helper that handles
+authentication headers and error handling for all API calls. Token and base URL
+are configurable via `API_TOKEN` / `API_BASE_URL` environment variables, falling
+back to the provided dev defaults so it runs out of the box.
+
+`getTax` and `getHEM` are fetched concurrently with `Promise.all` in
+`calculateBorrowingPower`, since neither depends on the other's result.
+
+**Bug found and fixed:** comma-formatted console input (e.g. `"$100,000"`) was
+being silently truncated by `parseFloat` (`parseFloat("100,000")` → `100`),
+producing wrong results with no error. Fixed by stripping non-numeric characters
+before parsing in `parsePositiveNumber`.
+
+### How to run it
+
+**1. Install dependencies:**
+
+npm install
+
+
+**2. Start the API server** (in its own terminal, leave it running):
+
+npm run api
+
+
+**3. Run the calculator** (in a second terminal):
+
+npm start
+
+
+### How to test
+
+**Run the test suite:**
+
+npm test
+
+9 core tests covering: the calculation math (standard case + the zero-repayment
+edge case), `fetchJson`'s success/failure branches (via mocked global `fetch`),
+error propagation from the API layer, and `parsePositiveNumber` input parsing
+(commas, blanks, negatives, decimals).
+
+**Check test coverage:**
+
+npm run coverage
+
+Reports 100% statements/branches/functions/lines. `runConsoleMode` and the CLI
+entry point (`if (require.main === module)`) are excluded via `/* c8 ignore */`,
+since they're interactive I/O tested manually rather than through automated
+tests — this manual testing is how the comma-parsing bug above was found. All
+business logic, error handling, and input parsing are covered by automated tests.
