@@ -113,6 +113,7 @@ function parsePositiveNumber(rawValue) {
     }
     return value;
 }
+/* c8 ignore start */
 async function runConsoleMode() {
     const readline = require('readline');
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -165,6 +166,7 @@ async function runConsoleMode() {
 if (require.main === module) {
     runConsoleMode();
 }
+/* c8 ignore stop */
 
 module.exports = BorrowingCalculator;
 module.exports.parsePositiveNumber = parsePositiveNumber;

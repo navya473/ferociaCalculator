@@ -2,6 +2,61 @@ const assert = require('assert');
 const BorrowingCalculator = require('./borrowingCalculator');
 const { parsePositiveNumber } = BorrowingCalculator;
 
+describe('fetchJson Tests (mocking global fetch)', () => {
+    let calculator;
+    let originalFetch;
+
+    beforeEach(() => {
+        calculator = new BorrowingCalculator();
+        originalFetch = global.fetch;
+    });
+
+    afterEach(() => {
+        global.fetch = originalFetch;
+    });
+
+    it('should return parsed JSON on a successful response', async () => {
+        global.fetch = async () => ({
+            ok: true,
+            json: async () => ({ tax: 12345 })
+        });
+        const result = await calculator.fetchJson('/api/tax?income=50000');
+        assert.strictEqual(result.tax, 12345);
+    });
+
+    it('should throw with the server error message when response is not ok', async () => {
+        global.fetch = async () => ({
+            ok: false,
+            status: 401,
+            json: async () => ({ error: 'Invalid Token', message: 'Invalid Personal Access Token' })
+        });
+        await assert.rejects(
+            () => calculator.fetchJson('/api/tax?income=50000'),
+            /Invalid Personal Access Token/
+        );
+    });
+
+    it('should throw a fallback message when error response has no JSON body', async () => {
+        global.fetch = async () => ({
+            ok: false,
+            status: 500,
+            json: async () => { throw new Error('not JSON'); }
+        });
+        await assert.rejects(
+            () => calculator.fetchJson('/api/tax?income=50000'),
+            /API request failed with status 500/
+        );
+    });
+
+    it('should throw a clear message when fetch itself throws (network failure)', async () => {
+        global.fetch = async () => { throw new Error('fetch failed'); };
+        await assert.rejects(
+            () => calculator.fetchJson('/api/tax?income=50000'),
+            /Could not reach the calculation server/
+        );
+    });
+});
+
 describe('BorrowingCalculator Tests', () => {
     let calculator;
 
